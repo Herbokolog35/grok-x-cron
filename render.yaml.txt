@@ -1,0 +1,14 @@
+services: []
+
+cronJobs:
+  - name: morning-post
+    schedule: "0 5 * * *"          # 08:00 TRT
+    command: "python scheduled_post.py --topic-file topic_morning.txt"
+
+  - name: noon-post
+    schedule: "0 9 * * *"          # 12:00 TRT
+    command: "python scheduled_post.py --topic-file topic_noon.txt"
+
+  - name: evening-post
+    schedule: "0 15 * * *"         # 18:00 TRT
+    command: "python scheduled_post.py --topic-file topic_evening.txt"
