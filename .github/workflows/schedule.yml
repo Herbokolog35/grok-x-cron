@@ -1,1 +1,65 @@
+name: Tweet Scheduler
 
+on:
+  schedule:
+    - cron: '0 5 * * *'   # 08:00 Türkiye (UTC+3)
+    - cron: '0 9 * * *'   # 12:00 Türkiye
+    - cron: '0 15 * * *'  # 18:00 Türkiye
+  workflow_dispatch:      # Manuel çalıştırma butonu
+
+jobs:
+  tweet:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run morning tweet
+        if: github.event.schedule == '0 5 * * *'
+        run: |
+          echo "$X_REFRESH_TOKEN" > .x_refresh_token
+          python scheduled_post.py --topic-file topic_morning.txt
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          X_MODEL: ${{ secrets.X_MODEL }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          X_REDIRECT_URI: ${{ secrets.X_REDIRECT_URI }}
+          X_SCOPES: ${{ secrets.X_SCOPES }}
+          X_REFRESH_TOKEN: ${{ secrets.X_REFRESH_TOKEN }}
+
+      - name: Run noon tweet
+        if: github.event.schedule == '0 9 * * *'
+        run: |
+          echo "$X_REFRESH_TOKEN" > .x_refresh_token
+          python scheduled_post.py --topic-file topic_noon.txt
+        env: 
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          X_MODEL: ${{ secrets.X_MODEL }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          X_REDIRECT_URI: ${{ secrets.X_REDIRECT_URI }}
+          X_SCOPES: ${{ secrets.X_SCOPES }}
+          X_REFRESH_TOKEN: ${{ secrets.X_REFRESH_TOKEN }}
+
+      - name: Run evening tweet
+        if: github.event.schedule == '0 15 * * *'
+        run: |
+          echo "$X_REFRESH_TOKEN" > .x_refresh_token
+          python scheduled_post.py --topic-file topic_evening.txt
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          X_MODEL: ${{ secrets.X_MODEL }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          X_REDIRECT_URI: ${{ secrets.X_REDIRECT_URI }}
+          X_SCOPES: ${{ secrets.X_SCOPES }}
+          X_REFRESH_TOKEN: ${{ secrets.X_REFRESH_TOKEN }}
