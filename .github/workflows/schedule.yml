@@ -3,7 +3,12 @@ name: Tweet Scheduler (duygu)
 on:
   schedule:
     - cron: '*/5 * * * *'   # Her 5 dakikada bir (UTC)
-  workflow_dispatch:        # Elle tetikleme
+  workflow_dispatch:
+    inputs:
+      force_now:
+        description: "Hemen gönder (1 = evet, 0 = hayır)"
+        required: false
+        default: "0"
 
 jobs:
   tweet:
@@ -19,6 +24,38 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # --- YENİ ADIM: Sadece manuel tetikte Grok üretim testi ---
+      - name: Grok self-test (generate only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          python - <<'PY'
+          import os, requests
+          key = os.environ["XAI_API_KEY"]
+          url = "https://api.x.ai/v1/chat/completions"
+          headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+          payload = {
+            "model": os.environ.get("X_MODEL","grok-code-fast-1"),
+            "messages": [
+              {"role":"system","content":"Kıdemli bir sosyal medya editörüsün. Tek cümlelik, duygu yüklü bir söz üret. Türkçe yaz. 280 karakteri geçme. Hashtag/emoji yok."},
+              {"role":"user","content":"Bugün için tek bir duygu yüklü söz üret."}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 200
+          }
+          r = requests.post(url, headers=headers, json=payload, timeout=30)
+          print("SELFTEST_HTTP:", r.status_code)
+          print("SELFTEST_BODY:", r.text[:400])
+          if r.ok:
+              try:
+                  text = r.json()["choices"][0]["message"]["content"].strip()
+                  print("SELFTEST_OK:", text)
+              except Exception as e:
+                  print("SELFTEST_PARSE_ERR:", e)
+          PY
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          X_MODEL: ${{ secrets.X_MODEL }}
+
       - name: Run dispatcher (duygu)
         run: |
           echo "$X_REFRESH_TOKEN" > .x_refresh_token
@@ -31,3 +68,4 @@ jobs:
           X_REDIRECT_URI: ${{ secrets.X_REDIRECT_URI }}
           X_SCOPES: ${{ secrets.X_SCOPES }}
           X_REFRESH_TOKEN: ${{ secrets.X_REFRESH_TOKEN }}
+          FORCE_NOW: ${{ inputs.force_now || '0' }}
