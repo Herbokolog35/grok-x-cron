@@ -24,27 +24,40 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # --- YENİ ADIM: Sadece manuel tetikte Grok üretim testi ---
+      # --- SELF-TEST: Yalnızca manuel tetikte Grok üretimini sınar ---
       - name: Grok self-test (generate only)
         if: github.event_name == 'workflow_dispatch'
         run: |
           python - <<'PY'
-          import os, requests
-          key = os.environ["XAI_API_KEY"]
-          url = "https://api.x.ai/v1/chat/completions"
-          headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+          import os, requests, datetime
+          key   = os.environ["XAI_API_KEY"]
+          model = os.environ.get("X_MODEL","grok-code-fast-1")
+          now   = datetime.datetime.utcnow() + datetime.timedelta(hours=3)  # TRT
+          sys_prompt = (
+              "Deneyimli bir sosyal medya editörüsün. Türkçe ve yalın yaz. "
+              "TEK CÜMLELİK, duygu yüklü ve vurucu bir söz üret. "
+              "280 karakteri geçme. Emoji/hashtag kullanma. Alıntı tırnakları ekleme."
+          )
+          user_prompt = (
+              f"Tarih: {now.strftime('%d.%m.%Y')}, Saat: {now.strftime('%H:%M')}. "
+              "Konu: Duygu yüklü, tek cümlelik bir söz."
+          )
           payload = {
-            "model": os.environ.get("X_MODEL","grok-code-fast-1"),
-            "messages": [
-              {"role":"system","content":"Kıdemli bir sosyal medya editörüsün. Tek cümlelik, duygu yüklü bir söz üret. Türkçe yaz. 280 karakteri geçme. Hashtag/emoji yok."},
-              {"role":"user","content":"Bugün için tek bir duygu yüklü söz üret."}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 200
+              "model": model,
+              "messages": [
+                  {"role":"system","content": sys_prompt},
+                  {"role":"user","content":  user_prompt}
+              ],
+              "temperature": 0.8,
+              "max_tokens": 200
           }
-          r = requests.post(url, headers=headers, json=payload, timeout=30)
+          r = requests.post(
+              "https://api.x.ai/v1/chat/completions",
+              headers={"Authorization": f"Bearer {key}", "Content-Type":"application/json"},
+              json=payload, timeout=30
+          )
           print("SELFTEST_HTTP:", r.status_code)
-          print("SELFTEST_BODY:", r.text[:400])
+          print("SELFTEST_BODY:", r.text[:500])
           if r.ok:
               try:
                   text = r.json()["choices"][0]["message"]["content"].strip()
@@ -56,6 +69,7 @@ jobs:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
           X_MODEL: ${{ secrets.X_MODEL }}
 
+      # --- Asıl çalışma: dispatcher zamanlamaya göre üret + paylaş ---
       - name: Run dispatcher (duygu)
         run: |
           echo "$X_REFRESH_TOKEN" > .x_refresh_token
