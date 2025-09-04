@@ -34,13 +34,15 @@ jobs:
           model = os.environ.get("X_MODEL","grok-code-fast-1")
           now   = datetime.datetime.utcnow() + datetime.timedelta(hours=3)  # TRT
           sys_prompt = (
-              "Deneyimli bir sosyal medya editörüsün. Türkçe ve yalın yaz. "
-              "TEK CÜMLELİK, duygu yüklü ve vurucu bir söz üret. "
-              "280 karakteri geçme. Emoji/hashtag kullanma. Alıntı tırnakları ekleme."
+              "Sen deneyimli bir sosyal medya yazarı ve şairsin. "
+              "Türkçe yaz. Tek cümlelik, duygu yüklü, özgün bir söz yaz. "
+              "İçinde duygu, derinlik ve vuruculuk olsun. "
+              "En fazla 280 karakter kullan. "
+              "Emoji, hashtag veya alıntı işareti KULLANMA."
           )
           user_prompt = (
-              f"Tarih: {now.strftime('%d.%m.%Y')}, Saat: {now.strftime('%H:%M')}. "
-              "Konu: Duygu yüklü, tek cümlelik bir söz."
+              f"Tarih: {now.strftime('%d.%m.%Y')}, Saat: {now.strftime('%H:%M')}.\n"
+              "Bana tek cümlelik, duygu yüklü bir söz üret."
           )
           payload = {
               "model": model,
@@ -48,8 +50,8 @@ jobs:
                   {"role":"system","content": sys_prompt},
                   {"role":"user","content":  user_prompt}
               ],
-              "temperature": 0.8,
-              "max_tokens": 200
+              "temperature": 0.9,
+              "max_tokens": 400
           }
           r = requests.post(
               "https://api.x.ai/v1/chat/completions",
